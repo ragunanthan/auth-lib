@@ -1,8 +1,20 @@
-import express from "express";
+import express, { Router, Request, Response, NextFunction } from "express";
 import jwtStrategy from "./strategies.js";
 import { getUserDetail, login, logout, refreshToken, signUp } from "./controller.js";
+import { AuthenticatedRequest } from "./types.js";
+
+interface AuthLibOptions {
+  getUser:  () => Promise<{ success: boolean }>;
+  addToken:  () => Promise<{ success: boolean }>;
+  getToken:  () => Promise<{ success: boolean }>;
+  saveUser:  () => Promise<{ success: boolean }>;
+  deleteExistingToken:  (id : string) => Promise<{ success: boolean }>;
+}
 
 class AuthLib {
+  private initialized: boolean;
+  private router: Router;
+
   constructor() {
     this.initialized = false;
     this.router = express.Router();
@@ -14,7 +26,7 @@ class AuthLib {
     getToken,
     saveUser,
     deleteExistingToken
-  }) {
+  }: AuthLibOptions) {
     if (this.initialized) {
       console.warn("AuthLib is already initialized.");
       return;
@@ -42,7 +54,7 @@ class AuthLib {
     getToken,
     saveUser,
     deleteExistingToken
-  }) {
+  }: AuthLibOptions) {
     // Routes handlers
     this.router.get("/authLibCheck", this.authLibCheck.bind(this));
     this.router.post("/login", login({getUser, addToken}));
@@ -55,17 +67,16 @@ class AuthLib {
     this.router.get("/logout", logout({ deleteExistingToken }));
   }
   
-
-  authenticate(req, res, next) {
+  authenticate(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     // Perform authentication based on the strategy
     jwtStrategy.authenticate(req, res, next);
   }
 
-  authLibCheck(req, res) {
+  authLibCheck(req: Request, res: Response) {
     res.json("Connect to auth check");
   }
 
-  getRoutes() {
+  getRoutes(): Router {
     return this.router;
   }
 }
